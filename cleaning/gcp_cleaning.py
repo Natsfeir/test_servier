@@ -59,9 +59,9 @@ class SearchDrugs(GCPCleaner):
         drugn_json = []
         for drug in drugs.drug:
             clinical_trials_drug = clinical_trials[clinical_trials.scientific_title.str.contains(drug)]
-            json_clinical = set(zip(clinical_trials_drug['journal'], clinical_trials_drug['date']))
+            json_clinical = set(zip(["clinical" for _ in range(len(clinical_trials_drug))], clinical_trials_drug['journal'], clinical_trials_drug['date']))
             pubmed_drug = pubmed[pubmed.title.str.contains(drug)]
-            json_pubmed = set(zip(pubmed['journal'], pubmed['date']))
+            json_pubmed = set(zip(["pubmed" for _ in range(len(pubmed_drug))], pubmed_drug['journal'], pubmed_drug['date']))
             json_clinical.update(json_pubmed)
             drugn_json.append({drug : json_clinical})
         # self.load_into_bigquery(drugn_json, 'servier_test_staging.drug_json')
@@ -95,7 +95,38 @@ if __name__ == '__main__':
         gcp_cleaner = GCPCleaner(project_id)
         gcp_cleaner.run(source_table, destination_table, clean_func)
     search = SearchDrugs(project_id)
-    drug_json = search.run()
+    
+    #J'ai formater le json en ayant des valeurs direct
+    #Pour faciliter son utilisation on pourra le formater de la maniere:
+    #[{"drug":valeur_drug, "journals":[{"name_jounal":valeur_name, "date":date},{"name_jounal":valeur_name, "date":date} ...]}...]
+    drug_jsons = search.run()
+    #bonus:
+    journals_dict = {}
+    def add(key):
+        if key in journals_dict:
+            journals_dict[key] += 1
+        else:
+            journals_dict[key] = 1
+    for drug_json in drug_jsons:
+        for name_drug, publish_journals_date in drug_json.items():
+            publish_journals_date_clean = {journal for _, journal, _ in publish_journals_date}
+            for journal in publish_journals_date_clean:
+                add(journal)
+    print(" le nom du journal qui mentionne le plus de médicaments différents:",max(journals_dict, key=journals_dict.get))
+    # bonnus 2
+    def find_medicaments_by_journal(journal):
+        medicaments = []
+        for drug_json in drug_jsons:
+            for name_drug, publish_journals_date in drug_json.items():
+                publish_journals_date_clean = {journal for _, journal, _ in publish_journals_date}
+                if journal in publish_journals_date_clean:
+                    medicaments.append(name_drug)
+        return medicaments
+    medicament_donne = "diphenhydramine"
+    medicaments = []
+    for drug_json in drug_jsons:
+        for name_drug, publish_journals_date in drug_json.items():
+            if name_drug == medicament_donne:
+                medicaments.extend(find_medicaments_by_journal(journal))
 
-    # partie 5
-
+    print(f" l’ensemble des médicaments mentionnés par les mêmes journaux référencés de {medicament_donne} est ",set(medicaments))

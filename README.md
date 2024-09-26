@@ -21,14 +21,16 @@
    - Étapes :
      - Charger les données brutes depuis BigQuery.
      - Nettoyer avec Pandas.
-     - Ingestion incrémentale dans BigQuery.
+     - Ingestion dans BigQuery.
 
-5. **Solution Idéale** :
-   - Ingestion :
-     - Charger les données dans une table temporaire BigQuery depuis un bucket.
-     - Nettoyage avec des requêtes SQL pour éviter la contrainte de RAM.
-   - Nettoyage :
-     - Stratégie d'ingestion incrémentale sans recréer la table cible.
+
+#### Reponse a la question : Adapeter sa solution pour en faire une Solution Idéale pour gros volume de données
+- **Ingestion** :
+  - Charger dans une table temporaire BigQuery a l'aide des bibliotheque bigquery a partir d'un bucket comme `GCPIngestionLibrary`
+  - Rajouter du nettoyage avec une requête SQL pour limiter l'utilisation de la RAM.
+- **Cleaning** :
+  - Nettoyer avec code SQL BigQuery : nous ne serons donc pas limiter par la Ram
+  - Trouver une stratégie incrémentale pour mettre à jour la table cible sans la recréer.
 
 - **Pourquoi ma solution independante et scalable avec Dag** :
    - Le code est conçu pour être intégré dans des DAGs Airflow, paramétrable pour différents cas d'usage.
