@@ -9,7 +9,7 @@ from google.cloud import storage, bigquery
 from pandas_gbq import to_gbq
 from google.api_core.exceptions import NotFound, GoogleAPIError
 
-from ingestion_abstract import Ingestion
+from ingestion.ingestion_abstract import Ingestion
 
 # Configure the logger
 logging.basicConfig(level=logging.INFO)
@@ -319,6 +319,7 @@ class GCPIngestionPandas(GCPIngestion):
                 self._move_file(bucket_name, blob_path, error_bucket_name, archive=False)
             except Exception as error:
                 logger.error(f"Failed to move file to error bucket: {error}")
+
 
 
 # Testing the code

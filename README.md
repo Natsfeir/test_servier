@@ -22,6 +22,9 @@
      - Charger les données brutes depuis BigQuery.
      - Nettoyer avec Pandas.
      - Ingestion dans BigQuery.
+5. **Obtention du Json** :
+  - Utilisation de 4 pour charger les données depuis BigQuery 
+  et appliquer les transformation pour obtenir le Json
 
 
 #### Reponse a la question : Adapeter sa solution pour en faire une Solution Idéale pour gros volume de données
@@ -46,4 +49,10 @@
    `SearchDrugs(GCPCleaner) de gcp_cleaning.py`
 
 
+
+
+
+### Pour executer le code
+Se connecter via le json
+export GOOGLE_APPLICATION_CREDENTIALS="/chemin/vers/votre/fichier/admin_demo_test_servier_sa.json"
 
