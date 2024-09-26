@@ -118,7 +118,7 @@ if __name__ == '__main__':
         medicaments = []
         for drug_json in drug_jsons:
             for name_drug, publish_journals_date in drug_json.items():
-                publish_journals_date_clean = {journal for _, journal, _ in publish_journals_date}
+                publish_journals_date_clean = {journal for source, journal, _ in publish_journals_date if source == 'pubmed'}
                 if journal in publish_journals_date_clean:
                     medicaments.append(name_drug)
         return medicaments
@@ -127,6 +127,8 @@ if __name__ == '__main__':
     for drug_json in drug_jsons:
         for name_drug, publish_journals_date in drug_json.items():
             if name_drug == medicament_donne:
-                medicaments.extend(find_medicaments_by_journal(journal))
+                publish_journals_date_clean = {journal for source, journal, _ in publish_journals_date if source == 'pubmed'}
+                for journal in publish_journals_date_clean:
+                    medicaments.extend(find_medicaments_by_journal(journal))
 
     print(f" l’ensemble des médicaments mentionnés par les mêmes journaux référencés de {medicament_donne} est ",set(medicaments))
