@@ -53,6 +53,8 @@
 
 
 ### Pour executer le code
-Se connecter via le json
-export GOOGLE_APPLICATION_CREDENTIALS="/chemin/vers/votre/fichier/admin_demo_test_servier_sa.json"
+Avec un python 3.11 : 
+- export GOOGLE_APPLICATION_CREDENTIALS="/chemin/vers/votre/fichier/admin_demo_test_servier_sa.json"
+- pip install -r requirements.txt
+- python main_local.py
 
