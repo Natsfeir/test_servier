@@ -1,3 +1,4 @@
+black==24.8.0
 google-cloud==0.34.0
 google-cloud-storage==2.18.2
 grpcio-status==1.66.1
@@ -5,6 +6,7 @@ importlib-metadata==8.0.0
 importlib-resources==6.4.0
 ipykernel==6.29.5
 jaraco.text==3.12.1
+mock==5.1.0
 pandas-gbq==0.23.2
 pip-chill==1.0.3
 tomli==2.0.1
