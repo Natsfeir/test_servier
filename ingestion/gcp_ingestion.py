@@ -1,4 +1,3 @@
-
 import pandas as pd
 import io
 import json
@@ -15,12 +14,13 @@ from ingestion.ingestion_abstract import Ingestion
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class GCPIngestion(Ingestion):
     def __init__(self, project_id: str):
         self.project_id = project_id
         self.storage_client = storage.Client(project=project_id)
         self.bigquery_client = bigquery.Client(project=project_id)
-    
+
     def load(self):
         pass
 
@@ -70,8 +70,8 @@ class GCPIngestion(Ingestion):
             logger.info(f"File moved successfully to {target_blob_path} in {target_bucket_name}")
 
             # Optionally, delete the original file from the source bucket
-            source_blob.delete()
-            logger.info(f"Original file {blob_path} deleted from source bucket")
+            #source_blob.delete()
+            #logger.info(f"Original file {blob_path} deleted from source bucket")
 
         except NotFound as e:
             logger.error(f"Source or target bucket not found: {bucket_name} or {target_bucket_name}")
@@ -84,124 +84,19 @@ class GCPIngestion(Ingestion):
             raise RuntimeError(f"Unexpected error during file move: {e}") from e
 
 
-class GCPIngestionLibrary(GCPIngestion):
-    def __init__(self, project_id: str):
-        super().__init__(project_id)
-    
-    def load(self, bucket_name: str, blob_path: str, dataset_id: str, schema_path: str = None):
-        """
-        Loads a file into the raw BigQuery table.
-
-        Args:
-            bucket_name (str): Name of the bucket containing the file to load.
-            blob_path (str): Path of the blob inside the bucket.
-            schema_path (str): Path of the schema file inside the bucket. Optional.
-            dataset_id (str): Dataset ID in BigQuery where the table is located.
-        Raises:
-            FileNotFoundError: If the file or bucket does not exist.
-            GoogleAPIError: If a GCP error occurs.
-        """
-        try:
-            schema = None
-            autodetect = True  # Initialize autodetect as True
-
-            if schema_path:
-                # Download the schema file if provided
-                schema_bucket = self.storage_client.bucket(bucket_name)
-                schema_blob = schema_bucket.blob(schema_path)
-                schema_content = schema_blob.download_as_string().decode("utf-8")
-                schema = json.loads(schema_content)
-                logger.info(f"Schema loaded from {schema_path}")
-                autodetect = False  # Set autodetect to False if schema is provided
-            else:
-                logger.info("No schema provided. Using schema autodetection.")
-            
-            # Define the link to the file to load
-            link_bucket = f"gs://{bucket_name}/{blob_path}"
-            extension = Path(blob_path).suffix.lower()
-
-            # Configure the load job based on file extension and schema
-            job_config = self._get_job_config(extension, schema)
-            job_config.autodetect = autodetect  # Set autodetect in job_config
-
-            table = Path(blob_path).stem  # Get the file name without extension
-
-            # Define the destination in BigQuery
-            destination = f"{self.project_id}.{dataset_id}.{table}"
-            
-            # Start the load job
-            logger.info(f"Loading file {link_bucket} into {destination}")
-            load_job = self.bigquery_client.load_table_from_uri(
-                source_uris=[link_bucket],
-                destination=destination,
-                job_config=job_config
-            )
-            load_job.result()  # Wait for the job to complete
-            logger.info(f"Loading completed for {blob_path}")
-
-        except NotFound:
-            logger.error(f"File or bucket not found: {bucket_name}/{blob_path}")
-            raise FileNotFoundError(f"File or bucket not found: {bucket_name}/{blob_path}")
-        except GoogleAPIError as e:
-            logger.error(f"Google API error: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            raise
-
-    def run(self, full_bucket_path: str, data_set_id:str, schema_path: str = None):
-        """
-        Executes the complete ingestion process: load, clean, and archive.
-
-        Args:
-            full_bucket_path (str): Full path of the file inside the bucket (e.g., "sandbox-nbrami-sfeir-test-facto/clinical_trials.csv").
-            schema_path (str): Path of the schema file inside the bucket. Optional.
-        """
-        """
-        Executes the complete ingestion process: load, clean, and archive.
-
-        Args:
-            full_bucket_path (str): Full path of the file inside the bucket (e.g., "sandbox-nbrami-sfeir-test-facto/clinical_trials.csv").
-            schema_path (str): Path of the schema file inside the bucket. Optional.
-        """
-        try:
-            # Split the bucket name and blob path
-            full_bucket_path_list = full_bucket_path.split("/", 1)
-            bucket_name = full_bucket_path_list[0]
-            blob_path = full_bucket_path_list[1]
-
-            archive_bucket_name = f"{bucket_name}-archive"
-
-            # Load data into BigQuery
-            self.load(bucket_name, blob_path, data_set_id, schema_path)
-
-            # Archive the file after successful ingestion
-            self._move_file(bucket_name, blob_path, archive_bucket_name, archive=True)
-        
-        except Exception as e:
-            logger.error(f"Error during ingestion execution: {e}")
-            # Move the file to the error bucket
-            error_bucket_name = f"{bucket_name}-errors"
-            try:
-                self._move_file(bucket_name, blob_path, error_bucket_name, archive=False)
-            except Exception as e:
-                pass
-
-
-
 class GCPIngestionPandas(GCPIngestion):
     def __init__(self, project_id: str):
         super().__init__(project_id)
         self.storage_client = storage.Client(project=self.project_id)
-    
-    def load_from_bucket(self, bucket_name:str, blob_path:str):
+
+    def load_from_bucket(self, bucket_name: str, blob_path: str):
         """
         Loads a file into the raw BigQuery table using pandas-gbq.
 
         Args:
             full_bucket_path (str): Full path of the file inside the bucket (e.g., "sandbox-nbrami-sfeir-test-facto/clinical_trials.csv").
             dataset_id (str): Full table ID in BigQuery where the data should be loaded.
-        
+
         Raises:
             FileNotFoundError: If the file or bucket does not exist.
             GoogleAPIError: If a GCP error occurs.
@@ -212,6 +107,7 @@ class GCPIngestionPandas(GCPIngestion):
         except Exception as e:
             logger.error(f"Error loading data into BigQuery with pandas-gbq: {e}")
             raise
+
     def clean_data(self, df: pd.DataFrame, clean_func) -> pd.DataFrame:
         """
         Cleans the DataFrame using a specified cleaning function.
@@ -245,7 +141,7 @@ class GCPIngestionPandas(GCPIngestion):
         """
         try:
             destination_table = f"{dataset_id}.{table_id}"
-            to_gbq(df, destination_table=destination_table, project_id=self.project_id, if_exists='append')
+            to_gbq(df, destination_table=destination_table, project_id=self.project_id, if_exists="append")
             logger.info(f"Data loaded into BigQuery table {destination_table}")
         except Exception as e:
             logger.error(f"Error loading data into BigQuery table {dataset_id}.{table_id}: {e}")
@@ -279,6 +175,7 @@ class GCPIngestionPandas(GCPIngestion):
         except Exception as e:
             logger.error(f"Error downloading blob {blob_path} from bucket {bucket_name}: {e}")
             raise
+
     def run(self, full_bucket_path: str, dataset_id: str, clean_func=None):
         """
         Executes the complete ingestion process using pandas-gbq.
@@ -310,7 +207,7 @@ class GCPIngestionPandas(GCPIngestion):
             # Step 5: Archive or handle the file as needed (e.g., move to another bucket)
             archive_bucket_name = f"{bucket_name}-archive"
             self._move_file(bucket_name, blob_path, archive_bucket_name, archive=True)
-        
+
         except Exception as e:
             logger.error(f"Error during ingestion execution: {e}")
             # Handle error case, move file to error bucket if necessary
@@ -321,23 +218,24 @@ class GCPIngestionPandas(GCPIngestion):
                 logger.error(f"Failed to move file to error bucket: {error}")
 
 
-
 # Testing the code
-if __name__ == '__main__':
-    project_id = 'sandbox-nbrami-sfeir'
+if __name__ == "__main__":
+    project_id = "sandbox-nbrami-sfeir"
     bucket_names = [
         "sandbox-nbrami-sfeir-test-facto/clinical_trials.csv",
         "sandbox-nbrami-sfeir-test-facto/drugs.csv",
         "sandbox-nbrami-sfeir-test-facto/pubmed.csv",
-        ]
+    ]
     schema_path = None
     data_set_id = "servier_test"
     gcp_ingestion_pd = GCPIngestionPandas(project_id)
     for bucket_name in bucket_names:
         gcp_ingestion_pd.run(bucket_name, data_set_id)
     bucket_name = "sandbox-nbrami-sfeir-test-facto/pubmed.json"
+
     def custom_cleaning_function(df):
-        df['id'] = pd.to_numeric(df['id'], errors='coerce').astype('Int64')
-        df['date'] = pd.to_datetime(df['date'], format='%d/%m/%Y', errors='coerce').dt.strftime('%d/%m/%Y')
+        df["id"] = pd.to_numeric(df["id"], errors="coerce").astype("Int64")
+        df["date"] = pd.to_datetime(df["date"], format="%d/%m/%Y", errors="coerce").dt.strftime("%d/%m/%Y")
         return df
+
     gcp_ingestion_pd.run(bucket_name, data_set_id, custom_cleaning_function)

@@ -1,17 +1,38 @@
 from ingestion.gcp_ingestion import GCPIngestionPandas
 from cleaning.gcp_cleaning import GCPCleaner, SearchDrugs
 import pandas as pd
+from google.cloud import bigquery
+import json 
+
+def clear_table(project_id, data_set_id):
+    print("clear tables")
+    table_names = [
+        "clinical_trials",
+        "drugs",
+        "pubmed",
+    ]
+
+    client = bigquery.Client(project=project_id)
+    
+    for table_name in table_names:
+        query = f"DELETE FROM `{project_id}.{data_set_id}.{table_name}` WHERE TRUE"
+        client.query(query).result()
 
 if __name__ == '__main__':
-    #######3. **Code Python d'Ingestion** :
     project_id = 'sandbox-nbrami-sfeir'
+    data_set_id = "servier_test"
+    # Avant de commencer nous devons vider les tables déjà presente dans le projet
+    # pour pouvoir executer plusieur fois le code 
+    clear_table(project_id, data_set_id)
+
+
+    ####### 1. **Code Python d'Ingestion** :#########
     # En utilisant le cloud :
     bucket_names = [
         "sandbox-nbrami-sfeir-test-facto/clinical_trials.csv",
         "sandbox-nbrami-sfeir-test-facto/drugs.csv",
         "sandbox-nbrami-sfeir-test-facto/pubmed.csv",
         ]
-    data_set_id = "servier_test"
     gcp_ingestion_pd = GCPIngestionPandas(project_id)
     for bucket_name in bucket_names:
         print("ingestion", bucket_name)
@@ -26,7 +47,7 @@ if __name__ == '__main__':
     gcp_ingestion_pd.run(bucket_name, data_set_id, custom_cleaning_function)
     print('\n\n\n')
 
-    #######4. **Code Python de Nettoyage** :
+    #######2. **Code Python de Nettoyage** :
     project_id = 'sandbox-nbrami-sfeir'
     def clean_clinical_trials(df):
         df = GCPCleaner.clean_str_columns(df, ["scientific_title", "journal"])
@@ -58,12 +79,21 @@ if __name__ == '__main__':
 
     search = SearchDrugs(project_id)
     
-    ####### 5. **Obtention du Json** :
+    ####### 3. **Obtention du Json** :
     #J'ai formater le json en ayant des valeurs direct
+    drug_data = search.run()
+
     #Pour faciliter son utilisation on pourra le formater de la maniere:
     #[{"drug":valeur_drug, "journals":[{"name_jounal":valeur_name, "date":date},{"name_jounal":valeur_name, "date":date} ...]}...]
-    drug_jsons = search.run()
-    print("drug_jsons:", drug_jsons)
+    drug_json = []
+    for entry in drug_data:
+        for drug, journal_entries in entry.items():
+            journals = [{"name_journal": journal, "date": date} for _, journal, date in journal_entries]
+            drug_json.append({"drug": drug, "journals": journals})
+    
+    with open("./data/drug_json_result.json", "w") as json_file:
+        json.dump(drug_json, json_file)
+    print("drug_json:", drug_json)
     print('\n\n\n')
     print('\n\n\n')
 
@@ -74,7 +104,7 @@ if __name__ == '__main__':
             journals_dict[key] += 1
         else:
             journals_dict[key] = 1
-    for drug_json in drug_jsons:
+    for drug_json in drug_data:
         for name_drug, publish_journals_date in drug_json.items():
             publish_journals_date_clean = {journal for _, journal, _ in publish_journals_date}
             for journal in publish_journals_date_clean:
@@ -84,7 +114,7 @@ if __name__ == '__main__':
     # bonnus 2
     def find_medicaments_by_journal(journal):
         medicaments = []
-        for drug_json in drug_jsons:
+        for drug_json in drug_data:
             for name_drug, publish_journals_date in drug_json.items():
                 publish_journals_date_clean = {journal for source, journal, _ in publish_journals_date if source == 'pubmed'}
                 if journal in publish_journals_date_clean:
@@ -92,7 +122,7 @@ if __name__ == '__main__':
         return medicaments
     medicament_donne = "diphenhydramine"
     medicaments = []
-    for drug_json in drug_jsons:
+    for drug_json in drug_data:
         for name_drug, publish_journals_date in drug_json.items():
             if name_drug == medicament_donne:
                 publish_journals_date_clean = {journal for source, journal, _ in publish_journals_date if source == 'pubmed'}
