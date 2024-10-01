@@ -47,7 +47,8 @@ J'ai decoupé mon code main_local.py en 3 parties
        return df
    gcp_ingestion_pd.run(bucket_name, data_set_id, custom_cleaning_function)
    ```
-- Sous-classes possibles pour des besoins spécifiques, comme `SearchDrugs(GCPCleaner)` dans `gcp_cleaning.py`.#### Reponse a la question : Adapeter sa solution pour en faire une Solution Idéale pour gros volume de données
+- Sous-classes possibles pour des besoins spécifiques, comme `SearchDrugs(GCPCleaner)` dans `gcp_cleaning.py`.
+- #### Reponse a la question : Adapter sa solution pour en faire une Solution Idéale pour gros volume de données
 - **Ingestion** :
   - Charger dans une table temporaire BigQuery a l'aide des bibliotheque bigquery a partir d'un bucket comme `GCPIngestionLibrary` du code pour_aller_plus_loin.py
   - Rajouter du nettoyage avec une requête SQL pour limiter l'utilisation de la RAM.
