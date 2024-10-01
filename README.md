@@ -31,34 +31,9 @@ J'ai decoupé mon code main_local.py en 3 parties
 3. **Génération du JSON** :
    - Extraire et transformer les données depuis BigQuery pour obtenir le JSON.
 
-### Adaptation pour gros volumes de données
-
-- **Ingestion** : Utiliser une table temporaire BigQuery avec une bibliothèque comme `GCPIngestionLibrary`. Nettoyer avec SQL pour minimiser l'usage de la RAM.
-  
-- **Nettoyage** : Utiliser du SQL dans BigQuery pour éviter les limitations de RAM. Adopter une stratégie incrémentale pour mettre à jour les tables cibles.
-
-### Pourquoi cette solution est scalable
-- Intégration dans des DAGs Airflow, paramétrable pour divers cas d'usage.
-- Exemple de nettoyage :
-   ```python
-   def custom_cleaning_function(df):
-       df['id'] = pd.to_numeric(df['id'], errors='coerce').astype('Int64')
-       df['date'] = pd.to_datetime(df['date'], format='%d/%m/%Y', errors='coerce').dt.strftime('%d/%m/%Y')
-       return df
-   gcp_ingestion_pd.run(bucket_name, data_set_id, custom_cleaning_function)
-   ```
-- Sous-classes possibles pour des besoins spécifiques, comme `SearchDrugs(GCPCleaner)` dans `gcp_cleaning.py`.
-#### Reponse a la question : Adapter sa solution pour en faire une Solution Idéale pour gros volume de données
-- **Ingestion** :
-  - Charger dans une table temporaire BigQuery a l'aide des bibliotheque bigquery a partir d'un bucket comme `GCPIngestionLibrary` du code pour_aller_plus_loin.py
-  - Rajouter du nettoyage avec une requête SQL pour limiter l'utilisation de la RAM.
-- **Cleaning** :
-  - Nettoyer avec code SQL BigQuery : nous ne serons donc pas limiter par la Ram
-  - Trouver une stratégie incrémentale pour mettre à jour la table cible sans la recréer.
-
-- **Pourquoi ma solution independante et scalable avec Dag** :
+### Pourquoi ma solution independante et scalable avec Dag** :
    - Le code est conçu pour être intégré dans des DAGs Airflow, paramétrable pour différents cas d'usage.
-  - comme dans mon code gcp_ingestion.py:
+   - Exemple de nettoyage avec fonction customisé:
      ```python
      def custom_cleaning_function(df):
          df['id'] = pd.to_numeric(df['id'], errors='coerce').astype('Int64')
@@ -68,3 +43,11 @@ J'ai decoupé mon code main_local.py en 3 parties
      ```
    - Lors des use_case trop specifique : Possibilité de créer des sous-classes pour des cas d'usage en héritant de la classe principale : comme ma class :
    `SearchDrugs(GCPCleaner) de gcp_cleaning.py`
+### Reponse a la question : Adapter sa solution pour en faire une Solution Idéale pour gros volume de données
+- **Ingestion** :
+  - Charger dans une table temporaire BigQuery a l'aide des bibliotheque bigquery a partir d'un bucket. Mon code `GCPIngestionLibrary` du fichier pour_aller_plus_loin.py est conçu pour
+  - Rajouter du nettoyage avec une requête SQL pour limiter l'utilisation de la RAM a la place de Pandas.
+- **Cleaning** :
+  - Nettoyer avec code SQL BigQuery : nous ne serons donc pas limiter par la Ram
+  - Trouver une stratégie incrémentale pour mettre à jour la table cible sans la recréer.
+
